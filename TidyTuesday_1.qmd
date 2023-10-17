@@ -5,8 +5,6 @@ format:
 editor: visual
 ---
 
-# Exploring Musical Patterns: A Look into Taylor Swift's Key Modes Over Years
-
 ## Introduction:
 
 In this project, I explored the musical attributes of Taylor Swift's discography, seeking to uncover patterns in key modes across different years and albums. This analysis utilizes datasets curated by Jake Thompson as part of [taylor](https://taylor.wjakethompson.com/) R package, a weekly data project within the R community. This endeavor marks my initial contribution to [TidyTuesday](https://github.com/rfordatascience/tidytuesday), and I am thrilled to share these insights.
