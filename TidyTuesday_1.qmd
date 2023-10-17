@@ -1,0 +1,78 @@
+---
+format: 
+  html:
+   self-contained: true
+editor: visual
+---
+
+# Exploring Musical Patterns: A Look into Taylor Swift's Key Modes Over Years
+
+## Introduction:
+
+In this project, I explored the musical attributes of Taylor Swift's discography, seeking to uncover patterns in key modes across different years and albums. This analysis utilizes datasets curated by Jake Thompson as part of [taylor](https://taylor.wjakethompson.com/) R package, a weekly data project within the R community. This endeavor marks my initial contribution to [TidyTuesday](https://github.com/rfordatascience/tidytuesday), and I am thrilled to share these insights.
+
+You can find the code on [GitHub](https://github.com/SamMajumder/MyTidyTuesdayParticipation)
+
+Here's a step-by-step breakdown of the analysis:
+
+-   **Data Preparation**: First, we load the necessary libraries and data from the provided URL.
+
+-   **Data Aggregation**: We aggregate the mean values of various musical attributes like tempo, danceability, energy, and loudness, among others, grouped by key mode, mode name, and year.
+
+-   **Visualization**: A heatmap is created to visualize the mean tempo of Taylor Swift's songs by key mode and year. This visualization helps in understanding how the tempo, represented by color intensity, varies with the key mode across different years.
+
+Let's delve into the code that drives this exploration:
+
+```{r}
+
+# Load necessary library
+library(tidyverse)
+library(viridisLite)
+library(viridis)
+
+# Load the data
+taylor_all_songs <- read.csv("https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2023/2023-10-17/taylor_all_songs.csv")
+
+# Aggregate mean tempo and other characteristics for each combination of key_mode, mode_name, and year
+taylor_all_songs %>%
+  mutate(year = year(as.Date(album_release, format = "%Y-%m-%d"))) %>%
+  group_by(key_mode, mode_name, year) %>%
+  summarise(mean_tempo = mean(tempo, na.rm = TRUE),
+            mean_danceability = mean(danceability,
+                                     na.rm = TRUE),
+            mean_energy = mean(energy,na.rm = TRUE),
+            mean_loudness = mean(loudness,
+                                 na.rm = TRUE),
+            mean_speechiness = mean(speechiness,
+                                    na.rm = TRUE),
+            mean_acousticness = mean(acousticness,
+                                     na.rm = TRUE),
+            mean_instrumentalness = mean(instrumentalness,
+                                         na.rm = TRUE),
+            mean_liveness = mean(liveness,
+                                 na.rm = TRUE),
+            mean_valence = mean(valence,
+                                na.rm = TRUE),
+            mean_duration_ms = mean(duration_ms,
+                                    na.rm = TRUE)) %>%
+  ungroup() %>% # Ungroup the data
+  mutate(key_mode = factor(key_mode)) %>%
+  mutate(key_mode = fct_rev(fct_infreq(key_mode))) %>%  # Order key_mode by frequency
+  drop_na() %>%
+  ggplot(aes(x = key_mode,  # Now key_mode is ordered by frequency
+             y = as.factor(year),
+             fill = mean_tempo)) +
+  geom_tile() +
+  scale_fill_viridis(direction = -1) +
+  coord_flip() +
+  labs(title = "Mean Tempo of Taylor Swift's Songs by Key Mode and Year",
+       x = "Key Mode",
+       y = "Year",
+       fill = "Mean Tempo") +
+  theme_minimal() 
+
+
+
+```
+
+This code snippet orchestrates a visual exploration into the rhythmic aspects of Taylor Swift's music over the years. Through this heatmap, we can perceive the variation in tempo across different key modes and how it has evolved over the years. This exploration provides a glimpse into the musical elements that contribute to the sound of Taylor Swift's discography.
