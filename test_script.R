@@ -4,57 +4,75 @@ rm(list = ls())
 # Load necessary libraries
 library(tidyverse)
 library(RColorBrewer)
-library(viridisLite)
-library(viridis)
-library(plotly)
-
+library(shiny)
 
 ############
 ##### 
 
-# Load necessary library
-library(tidyverse)
-
 # Load the data
-taylor_all_songs <- read.csv("https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2023/2023-10-17/taylor_all_songs.csv")
+patient_risk_profiles <- patient_risk_profiles <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2023/2023-10-24/patient_risk_profiles.csv')
+
+########## 
+#### 
+
+df <- patient_risk_profiles %>% 
+  tidyr::pivot_longer(cols = starts_with("age group:"),
+                      names_to = "age_group",
+                      values_to = "value_age_group") %>%  
+  tidyr::pivot_longer(cols = `Acetaminophen exposures in prior year`:`Antibiotics Tetracyclines in prior year`,
+                      names_to = "record_of",
+                      values_to = "value_record_of_group") %>% 
+  tidyr::pivot_longer(cols = starts_with("predicted risk of"),
+                      names_to = "Disease",
+                      values_to = "Predicted_risk") %>% 
+  tidyr::pivot_longer(cols = `Sex = FEMALE`:`Sex = MALE`,
+                      names_to = "Sex",
+                      values_to = "values_sex") %>% 
+  dplyr::select(-c("value_age_group","values_sex","value_record_of_group","personId"))  %>% 
+  dplyr::mutate(Sex = case_when(Sex == "Sex = FEMALE" ~ "F",
+                                Sex == "Sex = MALE" ~ "M")) %>% 
+  dplyr::mutate(Disease = str_remove_all(Disease, "predicted risk of "))
 
 
-# Aggregate mean tempo for each combination of key_mode, mode_name, and year
-taylor_all_songs %>%
-  mutate(year = year(as.Date(album_release, format = "%Y-%m-%d"))) %>%
-  group_by(key_mode, mode_name, year) %>%
-  summarise(mean_tempo = mean(tempo, na.rm = TRUE),
-            mean_danceability = mean(danceability,
-                                     na.rm = TRUE),
-            mean_energy = mean(energy,na.rm = TRUE),
-            mean_loudness = mean(loudness,
-                                 na.rm = TRUE),
-            mean_speechiness = mean(speechiness,
-                                    na.rm = TRUE),
-            mean_acousticness = mean(acousticness,
-                                     na.rm = TRUE),
-            mean_instrumentalness = mean(instrumentalness,
-                                         na.rm = TRUE),
-            mean_liveness = mean(liveness,
-                                 na.rm = TRUE),
-            mean_valence = mean(valence,
-                                na.rm = TRUE),
-            mean_duration_ms = mean(duration_ms,
-                                    na.rm = TRUE)) %>%
-  ungroup() %>% # Ungroup the data
-  mutate(key_mode = factor(key_mode)) %>%
-  mutate(key_mode = fct_rev(fct_infreq(key_mode))) %>%  # Order key_mode by frequency
-  drop_na() %>%
-  ggplot(aes(x = key_mode,  # Now key_mode is ordered by frequency
-             y = as.factor(year),
-             fill = mean_tempo)) +
-  geom_tile() +
-  scale_fill_viridis(direction = -1) +
-  coord_flip() +
-  labs(title = "Mean Tempo of Taylor Swift's Songs by Key Mode and Year",
-       x = "Key Mode",
-       y = "Year",
-       fill = "Mean Tempo") +
-  theme_minimal() 
+# Define the UI
+ui <- fluidPage(
+  selectInput("age_group", "Age group:", unique(df$age_group)),
+  selectInput("record_of", "Record of:", unique(df$record_of)),
+  selectInput("Disease", "Predicted risk:", unique(df$Disease)),
+  plotOutput("barPlot")
+) 
 
-plot
+# Define the server
+server <- function(input, output) {
+  
+  # Create a reactive object to filter the data based on user input
+  filtered_data <- reactive({
+    df %>%
+      filter(age_group == input$age_group,
+             record_of == input$record_of,
+             Disease == input$Disease)
+  })
+  
+  # Create the dynamic bar plot
+  output$barPlot <- renderPlot({
+    ggplot(data = filtered_data(), aes(x = Sex, y = Predicted_risk, fill = Sex)) +
+      geom_bar(stat = "identity", position = position_dodge()) +
+      scale_fill_manual(values = brewer.pal(2, "Set3")) +  # Set3 is a color-blind friendly palette
+      labs(title = paste("Predicted Risk of", input$Disease,
+                         "for Age Group", input$age_group,
+                         "with Record of", input$record_of),
+           y = "Predicted Risk",
+           x = "Sex") +
+      theme_minimal()
+  })
+  
+}
+
+# Run the app
+shinyApp(ui = ui, server = server)
+
+  
+  
+ 
+
+

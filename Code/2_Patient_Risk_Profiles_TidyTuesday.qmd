@@ -1,0 +1,154 @@
+---
+format: 
+  html:
+   self-contained: true
+editor: visual
+---
+
+## **Introduction:**
+
+In this project, I delved into a dataset containing patient risk profiles, with an aim to visualize the predicted risk of various diseases across different age groups and medical histories. This analysis is part of my ongoing contributions to TidyTuesday, a weekly data project within the R community. The dataset for this week has been curated as part of a larger healthcare analytics initiative and is made accessible through the **`tidytuesday`** [GitHub repo](https://github.com/rfordatascience/tidytuesday/tree/master).
+
+A big thank you to [Jenna Reps](https://github.com/jreps) for this data.
+
+You can find the code from my analysis on [here](https://github.com/SamMajumder/MyTidyTuesdayParticipation).
+
+Here's a step-by-step breakdown of my approach:
+
+### Packages:
+
+We are going to be using **`tidyverse`**, **`RColorBrewer`** and **`shiny`** for this exercise
+
+```{r}
+
+library(tidyverse)
+library(RColorBrewer)
+library(shiny)
+
+```
+
+### Data Loading:
+
+The data is loaded from a URL using the **`read_csv`** function from the **`readr`** package.
+
+```{r}
+
+# Load the data
+patient_risk_profiles <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2023/2023-10-24/patient_risk_profiles.csv')
+
+```
+
+### Data Preperation:
+
+I wanted to Reshape the data using **`pivot_longer`** to create a more analysis-friendly structure, separating out the various attributes into distinct columns and also perform necessary data cleaning and manipulation to ensure consistency and readability.
+
+-   The **`df`** object is created by manipulating **`patient_risk_profiles`** using a series of functions from the **`tidyverse`** suite of packages.
+
+-   The **`pivot_longer`** function is used multiple times to convert the data from a wide format to a longer format, making it easier to work with.
+
+-   The **`select`** function is used to drop certain columns from the dataset that are not needed for further analysis.
+
+-   The **`mutate`** function is used twice to clean and reformat the data. In the first **`mutate`** call, the **`Sex`** column is cleaned to have simpler, more readable values i.e., only have female and male represented as **F** and **M** in the dataset. In the second **`mutate`** call, unwanted text is removed from the **`Disease`** column values to make them more readable.
+
+```{r}
+
+########## 
+#### 
+
+df <- patient_risk_profiles %>% 
+  tidyr::pivot_longer(cols = starts_with("age group:"),
+                      names_to = "age_group",
+                      values_to = "value_age_group") %>%  
+  tidyr::pivot_longer(cols = `Acetaminophen exposures in prior year`:`Antibiotics Tetracyclines in prior year`,
+                      names_to = "record_of",
+                      values_to = "value_record_of_group") %>% 
+  tidyr::pivot_longer(cols = starts_with("predicted risk of"),
+                      names_to = "Disease",
+                      values_to = "Predicted_risk") %>% 
+  tidyr::pivot_longer(cols = `Sex = FEMALE`:`Sex = MALE`,
+                      names_to = "Sex",
+                      values_to = "values_sex") %>% 
+  dplyr::select(-c("value_age_group","values_sex","value_record_of_group","personId"))  %>% 
+  dplyr::mutate(Sex = case_when(Sex == "Sex = FEMALE" ~ "F",
+                                Sex == "Sex = MALE" ~ "M")) %>% 
+  dplyr::mutate(Disease = str_remove_all(Disease, "predicted risk of "))
+
+
+```
+
+### Shiny application creation:
+
+#### **UI Code Breakdown:**
+
+The **`ui`** code in Shiny defines the user interface elements of the application.
+
+1.  **UI Definition:**
+
+    -   **`fluidPage`** is used as a container to hold the UI elements.
+
+    -   **`selectInput`** creates dropdown menus for user selection. Three dropdown menus are created for age group, record of medical history, and disease respectively.
+
+    -   **`plotOutput`** defines a space in the UI to render the dynamic bar plot generated in the **`server`** function.
+
+```{r}
+
+# Define the UI
+ui <- fluidPage(
+  selectInput("age_group", "Age group:", unique(df$age_group)),
+  selectInput("record_of", "Record of:", unique(df$record_of)),
+  selectInput("Disease", "Predicted risk:", unique(df$Disease)),
+  plotOutput("barPlot")
+) 
+
+```
+
+2.  **Server function:**
+    -   **`filtered_data`** is defined as a reactive object. This object will update automatically whenever the input values change.
+
+    -   The **`reactive`** function encapsulates code that generates reactive conduct - in this case, filtering the data based on user input.
+
+    -   **`output$barPlot`** is defined using the **`renderPlot`** function, which generates a dynamic bar plot based on the current state of **`filtered_data`**.
+
+    -   Inside **`renderPlot`**, a **`ggplot`** object is created using the filtered data, with aesthetic mappings, geoms, and other components specified to build the plot.
+
+```{r}
+
+
+# Define the server
+server <- function(input, output) {
+  
+  # Create a reactive object to filter the data based on user input
+  filtered_data <- reactive({
+    df %>%
+      filter(age_group == input$age_group,
+             record_of == input$record_of,
+             Disease == input$Disease)
+  })
+  
+  # Create the dynamic bar plot
+  output$barPlot <- renderPlot({
+    ggplot(data = filtered_data(), aes(x = Sex, y = Predicted_risk, fill = Sex)) +
+      geom_bar(stat = "identity", position = position_dodge()) +
+      scale_fill_manual(values = brewer.pal(2, "Set3")) +  # Set3 is a color-blind friendly palette
+      labs(title = paste("Predicted Risk of", input$Disease,
+                         "for Age Group", input$age_group,
+                         "with Record of", input$record_of),
+           y = "Predicted Risk",
+           x = "Sex") +
+      theme_minimal()
+  })
+  
+}
+
+
+```
+
+### Run the app:
+
+```{r}
+
+# Run the app
+shinyApp(ui = ui, server = server)
+
+
+```
