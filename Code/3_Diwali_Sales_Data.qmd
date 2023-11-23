@@ -1,0 +1,106 @@
+---
+title: "Tidy Tuesday- Diwali Sales Data"
+author: "Sambadi Majumder, PhD"
+format: 
+  html:
+   self-contained: true
+editor: visual
+---
+
+## Introduction
+
+This analysis is part of TidyTuesday, a weekly data project within the R community, focusing on Diwali, the festival of lights. The data, representing Diwali sales for a retail store in India, is sourced from Kaggle by Saad Haroon. This week's task involves visualizing and summarizing sales data to understand consumer behavior during Diwali.
+
+## Libraries used
+
+-   **terra**: For spatial data handling.
+
+-   **tidyverse**: A collection of R packages for data manipulation and visualization.
+
+-   **sf**: For handling geospatial data.
+
+-   **here**: For constructing file paths to the data.
+
+-   **RColorBrewer**: For color palettes in visualizations.
+
+```{r}
+
+library(terra)
+library(tidyverse)
+library(sf)
+library(here)
+library(RColorBrewer)
+
+### disabling scientific notation 
+options(scipen = 9999)
+
+```
+
+## Data Preparation
+
+The sales data is read into R using the **`read_csv`** function from **`readr`** package.
+
+```{r}
+house <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2023/2023-11-14/diwali_sales_data.csv')
+
+```
+
+## Data Analysis
+
+### Summarizing Sales Data
+
+The goal is to identify the highest order values per age group in each state. The data is grouped by State and Age Group, and the total amount spent by each age group in every state is calculated. Then, the maximum value for each state is retained.
+
+```{r}
+
+df <- house %>%
+  group_by(State, `Age Group`) %>%
+  summarise(Amount = sum(Amount), .groups = "drop") %>%
+  drop_na() %>%
+  group_by(State) %>%
+  slice_max(Amount, n = 1, with_ties = FALSE)
+
+```
+
+### Spatial Data handling
+
+The spatial data of Indian states is read and processed. Centroids are computed from the multipolygon geometry, and their coordinates are extracted.
+
+```{r}
+
+
+india_states <- sf::st_read(here("RawDatasets","Admin2.shp")) %>%
+                 rename(State = ST_NM) %>%
+                 st_transform(crs = 4326) %>%
+                 mutate(geometry_centroid = st_centroid(geometry)) %>%
+                 mutate(lon = st_coordinates(geometry_centroid)[,1],
+                        lat = st_coordinates(geometry_centroid)[,2])
+
+
+
+```
+
+### Merging Datasets
+
+The spatial data is merged with the summarized sales data to facilitate visualization.
+
+```{r}
+
+Diwali <- india_states %>%
+          inner_join(df)
+
+```
+
+## Visualization
+
+A map visualization is created using ggplot from the tidyverse. The geom_sf function is used to plot the states, and the Amount is used to fill the states. The "**YlOrRd**" color palette from **RColorBrewer** is applied.
+
+```{r}
+
+Diwali %>%
+  ggplot() +
+  geom_sf(aes(fill = Amount)) +
+  scale_fill_distiller(palette = "YlOrRd", direction = 1) +
+  theme_void()
+
+```
