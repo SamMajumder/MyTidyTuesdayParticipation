@@ -1,0 +1,93 @@
+---
+title: "Analysis of Doctor Who Episodes"
+author: "Sambadi Majumder, PhD"
+format: 
+  html:
+   self-contained: true
+editor: visual
+---
+
+## Introduction
+
+This week's TidyTuesday project focuses on the celebrated British television series "Doctor Who", particularly its "revived" era since 2005. The datasets, sourced from Wikipedia's \[[List of Doctor Who episodes](https://en.wikipedia.org/wiki/List_of_Doctor_Who_episodes_(2005%E2%80%93present)%5B)\](https://en.wikipedia.org/wiki/List_of_Doctor_Who_episodes\_(2005%E2%80%93present)) and compiled by **Jonathan Kitt** in the ***{datardis}*** package, provide a unique opportunity to analyze the series in light of its 60th anniversary. The objective is to explore various aspects of the show, including viewership and the collaboration between directors and writers.
+
+## Libraries used
+
+-   **tidyverse**: A collection of R packages for data manipulation and visualization.
+
+```{r}
+
+library(tidyverse)
+
+```
+
+## Data Preparation
+
+The datasets for Doctor Who episodes, directors, and writers were loaded using the read_csv function from the readr package.
+
+```{r}
+drwho_episodes <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2023/2023-11-28/drwho_episodes.csv')
+drwho_directors <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2023/2023-11-28/drwho_directors.csv')
+drwho_writers <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2023/2023-11-28/drwho_writers.csv')
+
+```
+
+#### **Joining the Three Datasets**
+
+The three datasets were merged to form a comprehensive dataset for analysis.
+
+```{r}
+
+df <- list(drwho_episodes,drwho_directors,drwho_writers) %>%
+                          purrr::reduce(inner_join)
+
+```
+
+## Data Analysis
+
+#### **Analyzing Mean Viewership**
+
+The focus was on evaluating the mean viewership based on the director-writer pairs, considering only those pairs that worked together on more than one episode.
+
+```{r}
+
+Summary <- df %>%
+  select(director, writer, uk_viewers) %>%
+  group_by(director, writer) %>%
+  summarise(
+    Mean_viewership = mean(uk_viewers),
+    Episode_count = n()
+  ) %>%
+  filter(Episode_count > 1) %>%
+  arrange(desc(Mean_viewership)) %>%
+  mutate(`Director-Writer pairs` = paste(director, writer, sep = " - "))
+
+```
+
+#### Visualization
+
+A bar plot was created to visually represent the mean viewership for each director-writer pair, colored by the number of episodes they worked on together.
+
+```{r}
+
+ggplot(Summary, aes(x = reorder(paste(`Director-Writer pairs`), 
+                                Mean_viewership), y = Mean_viewership, fill = as.factor(Episode_count))) +
+  geom_bar(stat = "identity") +
+  labs(
+    title = "Mean Viewership by Director-Writer Pairs",
+    x = "Director-Writer Pairs",
+    y = "Mean Viewership",
+    fill = "Episode Count"
+  ) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 0, hjust = 1)) +
+  scale_fill_brewer(palette = "Spectral") +
+  coord_flip()
+
+
+
+```
+
+## Conclusion 
+
+This analysis provided insights into the impact of director-writer collaborations on the viewership of "Doctor Who" episodes. The visualization highlighted the most successful collaborations, offering a unique perspective on the creative forces behind this iconic series.
