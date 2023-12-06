@@ -1,15 +1,42 @@
+---
+title: "Interactive Analysis of Global Life Expectancy Trends"
+author: "Sambadi Majumder, PhD"
+format: 
+  html:
+   self-contained: true
+editor: visual
+---
 
-rm(list = ls())
+## Introduction
 
-# Load necessary libraries
+This TidyTuesday project dives into the global life expectancy trends, leveraging data from the 2022 United Nations World Population Prospects and other sources, as processed by Our World in Data. The datasets offer a comprehensive view of life expectancy at different ages and the gender disparity in life expectancy across various countries. This analysis aims to provide interactive visual insights into these vital global health metrics. The dataset for this week has been curated as part of a larger healthcare analytics initiative and is made accessible through the **`tidytuesday`** [GitHub repo](https://github.com/rfordatascience/tidytuesday/tree/master).
+
+### Libraries used
+
+-   **`tidyverse`** for data manipulation and visualization.
+
+-   **`shiny`** for building interactive web applications.
+
+-   **`plotly`** for creating interactive plots.
+
+```{r}
+
 library(tidyverse)
-library(RColorBrewer)
 library(shiny)
 library(plotly)
+
+```
+
+### Data Preparation
+
+The data was sourced from three CSV files, encompassing overall life expectancy, life expectancy at different ages, and the life expectancy difference between females and males.
+
+```{r}
 
 life_expectancy <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2023/2023-12-05/life_expectancy.csv')
 life_expectancy_different_ages <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2023/2023-12-05/life_expectancy_different_ages.csv')
 life_expectancy_female_male <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2023/2023-12-05/life_expectancy_female_male.csv')
+
 
 
 # Assuming all datasets are loaded into R
@@ -17,7 +44,16 @@ combined_df <- life_expectancy %>%
   inner_join(life_expectancy_different_ages, by = c("Entity", "Code", "Year")) %>%
   inner_join(life_expectancy_female_male, by = c("Entity", "Code", "Year"))
 
-## Building the Shiny App
+
+```
+
+### Building Shiny app
+
+#### UI code
+
+A user-friendly interface was designed with two main dropdowns for country and age group selection. The UI also features two tabs for distinct visualizations. 
+
+```{r}
 
 ui <- fluidPage(
   titlePanel("Life Expectancy Trends"),
@@ -40,6 +76,16 @@ ui <- fluidPage(
     )
   )
 )
+
+
+```
+
+
+#### server code
+
+The server function dynamically generates interactive plots based on user selections. 
+
+```{r}
 
 server <- function(input, output) {
   output$lifeExpPlot <- renderPlotly({
@@ -74,9 +120,17 @@ server <- function(input, output) {
 }
 
 
+```
 
+#### Shiny run  
 
+The shinyApp function brings the UI and server components together to launch the interactive application.
 
+```{r}
 
 shinyApp(ui = ui, server = server)
+
+
+```
+
 

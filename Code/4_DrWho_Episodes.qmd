@@ -88,6 +88,6 @@ ggplot(Summary, aes(x = reorder(paste(`Director-Writer pairs`),
 
 ```
 
-## Conclusion 
+## Conclusion
 
 This analysis provided insights into the impact of director-writer collaborations on the viewership of "Doctor Who" episodes. The visualization highlighted the most successful collaborations, offering a unique perspective on the creative forces behind this iconic series.
