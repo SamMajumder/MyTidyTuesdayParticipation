@@ -1,0 +1,107 @@
+---
+title: "RConsortiumISC_Grants_TidyTuesday"
+author: "Dr. Sambadi Majumder"
+format: 
+  html:
+    self-contained: true
+editor: visual
+---
+
+## Introduction
+
+The R Consortium Infrastructure Steering Committee (ISC) Grant Program is a key initiative aimed at strengthening the R ecosystem. This program supports projects that contribute to both the technical and social infrastructure of the R community. With a new round of grant proposals being accepted between March 1 and April 1, 2024, this analysis explores the distribution and impact of past grants awarded since 2016.
+
+## Libraries used
+
+-   **tidyverse**: A collection of R packages for data manipulation and visualization.
+
+```{r}
+
+library(tidyverse)
+
+```
+
+## Data Acquisition
+
+The dataset for this analysis is sourced from the TidyTuesday project, which provides weekly data sets for the R community to explore.
+
+```{r}
+
+isc_grants <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2024/2024-02-20/isc_grants.csv')
+
+
+```
+
+#### **Data Preparation**
+
+We'll start by summarizing the number of grants awarded per cycle.
+
+```{r}
+
+summary_of_grants_awarded_per_cycle <- isc_grants %>% 
+                                     dplyr::group_by(group,year) %>%
+                                     dplyr::summarise(`grant count` = n())
+
+```
+
+#### Visualization
+
+Let's visualize the total number of grants awarded per cycle.
+
+```{r}
+
+summary_of_grants_awarded_per_cycle %>%
+  ggplot(aes(x = year, y = factor(group),
+             fill = `grant count`)) +
+  geom_tile(color = 'white') +
+  labs(x = "Year",
+       y = "Award Cycle",
+       fill = "Grant Count",
+       title = "Total grant awarded per cycle") +
+  scale_fill_viridis_c(direction = -1) + 
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, 
+                                   hjust = 1)) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1),
+        plot.title = element_text(hjust = 0.5)) # hjust = 0.5 centers the title
+
+
+```
+
+#### **Data Preparation**
+
+Next, we'll prepare the data to visualize the total dollar amount awarded per cycle.
+
+```{r}
+
+total_amount_of_grants_awarded_per_cycle <- isc_grants %>% 
+                                       dplyr::group_by(group,
+                                                       year) %>%
+                                       dplyr::summarise(`dollar amount` = sum(funded))
+
+```
+
+#### Visualization
+
+And here's the visualization for the total dollar amount awarded per cycle.
+
+```{r}
+
+total_amount_of_grants_awarded_per_cycle %>%
+  ggplot(aes(x = year, y = factor(group), fill = `dollar amount`)) +
+  geom_tile(color = 'white') +
+  labs(x = "Year",
+       y = "Award Cycle",
+       fill = "Grant dollar amount",
+       title = "Total dollar amount awarded") +
+  scale_fill_distiller(palette = "Spectral") +  # Change palette name as needed
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1),
+        plot.title = element_text(hjust = 0.5))
+
+
+```
+
+## Conclusion
+
+This analysis provides a visual overview of the R Consortium ISC Grants awarded over the years. By exploring the number of grants and the total funding amounts, we can gain insights into the trends and focus areas of the R Consortium's support for the R community. As the program continues to accept new proposals, it will be interesting to see how these trends evolve and how they impact the growth and development of the R ecosystem.
